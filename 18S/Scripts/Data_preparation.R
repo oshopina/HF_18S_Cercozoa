@@ -36,3 +36,20 @@ protist = t(protist) |> as.data.frame() |> cbind(protist_tax)
 traits = otu[rownames(protist_tax), 100:103]
 protist = cbind(protist, traits)
 # write.csv2(protist, '18S/Data/protist_1060.csv')
+
+embryo_tax = tax[!(is.na(tax$Class)),]
+embryo_tax = embryo_tax[embryo_tax$Class == 'Embryophyceae',]
+embryo = otu[rownames(embryo_tax), 1:98]
+r_level = colSums(embryo) |> min()  ## really small number of reads
+
+metazoa_tax = tax[!(is.na(tax$Subdivision)),]
+metazoa_tax = metazoa_tax[metazoa_tax$Subdivision == 'Metazoa',]
+metazoa = otu[rownames(metazoa_tax), 1:98]
+r_level = 100
+metazoa = metazoa[,colSums(metazoa) >= r_level]
+metazoa = rrarefy(t(metazoa), r_level)
+metazoa = t(metazoa) |> as.data.frame() |> cbind(metazoa_tax)
+traits = otu[rownames(metazoa_tax), 100:103]
+metazoa = cbind(metazoa, traits)
+# write.csv2(metazoa, '18S/Data/metazoa_100.csv')
+

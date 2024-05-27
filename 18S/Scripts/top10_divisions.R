@@ -1,3 +1,5 @@
+library(ggplot2)
+
 otu = read.csv2('18S/Data/euk_6160.csv', row.names = 1)
 
 collapsed_otu = aggregate(otu[,1:98], by = list(Subdivision = otu$Subdivision), FUN = 'sum')
@@ -27,32 +29,38 @@ otu_7$Mean = rowMeans(otu_7)
 otu_45 = otu_45[order(otu_45$Mean, decreasing = T),]
 otu_45$Division = rownames(otu_45)
 otu_45$Division = factor(otu_45$Division, levels = rev(otu_45$Division))
-ggplot(otu_45, aes(x = Division, y = Mean)) +
+p1 = ggplot(otu_45, aes(x = Division, y = Mean)) +
   geom_bar(stat="identity", width=.4, show.legend = F) +
   coord_flip() +
   xlab("") +
-  theme_bw(base_size = 20) +
+  theme_bw(base_size = 10) +
   ylim(0, 80) +
   ylab('Relative abundance, %')
 
 otu_6 = otu_6[order(otu_6$Mean, decreasing = T),]
 otu_6$Division = rownames(otu_6)
 otu_6$Division = factor(otu_6$Division, levels = rev(otu_6$Division))
-ggplot(otu_6, aes(x = Division, y = Mean)) +
+p2 = ggplot(otu_6, aes(x = Division, y = Mean)) +
   geom_bar(stat="identity", width=.4, show.legend = F) +
   coord_flip() +
   xlab("") +
-  theme_bw(base_size = 20) +
+  theme_bw(base_size = 10) +
   ylim(0, 80) +
   ylab('Relative abundance, %')
 
 otu_7 = otu_7[order(otu_7$Mean, decreasing = T),]
 otu_7$Division = rownames(otu_7)
 otu_7$Division = factor(otu_7$Division, levels = rev(otu_7$Division))
-ggplot(otu_7, aes(x = Division, y = Mean)) +
+p3 = ggplot(otu_7, aes(x = Division, y = Mean)) +
   geom_bar(stat="identity", width=.4, show.legend = F) +
   coord_flip() +
   xlab("") +
-  theme_bw(base_size = 20) +
+  theme_bw(base_size = 10) +
   ylim(0, 80) +
   ylab('Relative abundance, %')
+
+library(patchwork)
+
+p = p1 + p2 +p3
+
+ggsave('18S/Figures/top10_divisions.png', p, width = 11, height = 3)
