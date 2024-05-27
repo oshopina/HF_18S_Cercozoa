@@ -1,5 +1,7 @@
 library(ComplexHeatmap)
 library(gsveasyr)
+library(changepoint)
+library(changepoint.geo)
 
 otu = read.csv2('18S/Data/euk_6160.csv', row.names = 1)
 env <- read.csv('18S/Data/env_16S.csv', row.names = 1)
@@ -49,6 +51,13 @@ plot(ang_cpt, ncpts = 2)
 ######################### WRITE CHOSEN NUMBER OF CHANGEPOINTS FOR ANGLE AND DISTANCE
 cp_angle = readline('Number of changepoint for angle data: ') |> as.numeric()
 
+############################## Cluster analysis ###############################
+
+set.seed(1)
+clust = kmeans(as.dist(df_mat), centers=4, iter.max = 999)
+clust = clust$cluster
+clust = as.factor(clust)
+
 ############################# Create tax labels ###############################
 tax = otu[otu$Subdivision %in% colnames(collapsed_otu),]
 tax = tax[, 100:102]
@@ -70,6 +79,11 @@ anova$Signif <- gsub("\\*+", "*", anova$Signif)
 colnames(df) = rownames(tax)
 
 df_scaled <- df|> vegan::decostand(method = 'normalize', MARGIN = 2) |> scale() |> t()
+
+medians = apply(df, 2, function(x){
+  median(x)
+})
+median_col = circlize::colorRamp2(c(0, 3500), c('white', 'aquamarine4'))
 
 my_palette = colorRampPalette(c(
   'white',
@@ -127,6 +141,14 @@ ha_f <- rowAnnotation(
   d_sd = anno_text(tax$d_sd_label)
 )
 
+ha_c <- rowAnnotation(
+  Median = medians,
+  gp = gpar(col = "black"),
+  col = list(Median = median_col),
+  show_legend = F, 
+  show_annotation_name = F
+)
+
 ## Create additional annotation for change point frequency
 ha2 = HeatmapAnnotation(
   change_point_dist = anno_lines(
@@ -138,14 +160,16 @@ ha2 = HeatmapAnnotation(
     axis = F
   ),
   height = unit(3, "cm"), 
-  show_annotation_name = F
+  cluster = clust,
+  show_annotation_name = F,
+  show_legend = F
 )
 
 draw(Heatmap(
   df_scaled,
   row_split = tax$Supergroup,
   row_title_rot = 0,
-  row_title_gp = gpar(fontsize = 10, fontface = 'bold'),
+  row_title_gp = gpar(fontsize = 15, fontface = 'bold'),
   row_order = rownames(df_scaled),
   column_order = env$Hoosfield.ID,
   col = my_palette(100),
@@ -153,6 +177,7 @@ draw(Heatmap(
   show_row_names = F,
   bottom_annotation = ha,
   right_annotation = ha_f,
+  left_annotation = ha_c,
   top_annotation = ha2,
   show_heatmap_legend = FALSE
 ))
@@ -214,3 +239,13 @@ decorate_annotation("change_point_ang", {
     gp = gpar(fontsize = 9)
   )
 })
+
+lgd = Legend(title = 'Median abundance', col_fun = median_col, at = c(0, 1000, 3500),
+             direction = 'horizontal', border = 'black', legend_width = unit(3, "cm"))
+draw(lgd, x = unit(0.07, "npc"), y = unit(0.95, "npc"))
+
+p = recordPlot()
+plot.new()
+png('18S/Figures/Heatmap_SG.png', height = 600, width = 800)
+print(p)
+dev.off()
