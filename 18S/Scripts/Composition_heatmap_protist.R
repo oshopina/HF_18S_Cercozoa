@@ -10,7 +10,7 @@ env <- read.csv('18S/Data/env_16S.csv', row.names = 1)
 env <- env[order(env$pH),] ## Sort the way you want the samples to be ordered on heatmap
 
 ## Load community data
-otu = read.csv2('18S/Data/protist_1230.csv', row.names = 1)
+otu = read.csv2('18S/Data/protist_1060.csv', row.names = 1)
 tax = otu[,99:107]
 otu = otu[1:98] |> t() |> as.data.frame()
 env = env[rownames(env) %in% rownames(otu),]
@@ -20,7 +20,7 @@ df <- otu[, apply(otu, 2, max) >= 36]  # Keep columns with max value >= 36 (3%)
 
 ############################### Change point analysis ##########################
 
-df_mat = df |> as.matrix()
+df_mat = df |> as.matrix() |> vegan::decostand(method = 'normalize', MARGIN = 2)
 cpt = geomcp(df_mat)
 plot(cpt)
 
@@ -35,7 +35,7 @@ pen.value.full(dist_cpt)
 dist_var = cpts.full(dist_cpt)
 tail(dist_var)
 plot(dist_cpt, diagnostic = T)
-plot(dist_cpt, ncpts = 2)
+plot(dist_cpt, ncpts = 3)
 ######################### WRITE CHOSEN NUMBER OF CHANGEPOINTS FOR ANGLE AND DISTANCE
 cp_dist = readline('Number of changepoint for distance data: ') |> as.numeric()
 
@@ -50,7 +50,7 @@ pen.value.full(ang_cpt)
 ang_var = cpts.full(ang_cpt)
 tail(ang_var)
 plot(ang_cpt, diagnostic = T)
-plot(ang_cpt, ncpts = 2)
+plot(ang_cpt, ncpts = 1)
 ######################### WRITE CHOSEN NUMBER OF CHANGEPOINTS FOR ANGLE AND DISTANCE
 cp_angle = readline('Number of changepoint for angle data: ') |> as.numeric()
 
@@ -71,16 +71,34 @@ tax$otu_label <- paste0('[', substring(rownames(tax), 4), ']')
 df <- df[, rownames(tax)]
 
 ## Perform ANOVA analysis
-anova <- auto_aov_fixed(df, ~ pH, env_df = env)$Results
-anova = subset(anova, str_detect(Parameter, 'pH'))[, c('Data', 'F_value', 'p_value', 'Signif')]
-rownames(anova) = anova$Data
-anova = anova[colnames(df),]
-anova$F_value = round(anova$F_value, digits = 2)
-anova$p_value = round(anova$p_value, digits = 4)
-anova$Signif <- gsub("\\*+", "*", anova$Signif)
+anova_results = data.frame()
+for(i in colnames(df)) {
+  anova = anova(aov(df[,i] ~ pH + I(pH^2), data = env))
+  anova <- as.data.frame(anova[, c(1, 4, 5)])
+  colnames(anova) <- c("Df", "F_value", "p_value")
+  anova <- anova %>% mutate(Signif = case_when(p_value < 0.05 ~ "*", TRUE ~ " "))
+  filtered_anova <- anova %>%
+    filter(Signif == "*" | row_number() <= 2) %>%
+    arrange(desc(Signif)) |> 
+    slice(1)
+  rownames(filtered_anova) = i
+  anova_results = rbind(anova_results, filtered_anova)
+}
+
+anova_results = anova_results[colnames(df),]
+anova_results$F_value = round(anova_results$F_value, digits = 2)
+anova_results$p_value = round(anova_results$p_value, digits = 4)
+anova = anova_results
 
 ## Save ANOVA results to a Word document
 # gtsave(gt::gt(anova), 'singleM_community/Results/anova_ra.docx')
+
+############################## Cluster analysis ###############################
+
+set.seed(1)
+clust = kmeans(as.dist(df_mat), centers=4, iter.max = 999)
+clust = clust$cluster
+clust = as.factor(clust)
 
 ############################## Heatmap ########################################
 
@@ -133,25 +151,24 @@ ha <- HeatmapAnnotation(
 
 ## Create taxonomy annotations
 
-median_col = circlize::colorRamp2(c(0, 230), c('white', 'aquamarine4'))
+median_col = circlize::colorRamp2(c(0, 200), c('white', 'aquamarine4'))
 
 ha_c <- rowAnnotation(
   class = anno_text(tax$phylum_label),
   order = anno_text(tax$order_label),
+  empty = anno_empty(border = FALSE, height = unit(1, "mm")),
   Median = medians,
+  gp = gpar(col = "black"),
   col = list(Median = median_col),
   show_legend = F, 
   show_annotation_name = F
 )
 
-lgd = Legend(title = 'Median abundance', col_fun = median_col, at = c(0, 100, 230),
-             direction = 'horizontal')
-
 ha_f <- rowAnnotation(
   anova = anno_text(anova$Signif),
   otu = anno_text(tax$otu_label),
-  family = anno_text(tax$f_g_label)
-)
+  family = anno_text(tax$f_g_label),
+  empty = anno_empty(border = FALSE, height = unit(1, "mm")))
 
 
 ## Create additional annotation for change point frequency
@@ -165,6 +182,8 @@ ha2 = HeatmapAnnotation(
     axis = F
   ),
   height = unit(3, "cm"), 
+  cluster = clust,
+  show_legend = F,
   show_annotation_name = F
 )
 
@@ -195,7 +214,6 @@ draw(Heatmap(
   show_heatmap_legend = FALSE
 ))
 
-draw(lgd, x = unit(0.15, "npc"), y = unit(0.95, "npc"))
 change_points_dist = cpts(dist_cpt, cp_dist)[!is.na(cpts(dist_cpt, cp_dist))]
 
 #creating vertical line for each change point in distance
@@ -254,5 +272,13 @@ decorate_annotation("change_point_ang", {
   )
 })
 
+lgd = Legend(title = 'Median abundance', col_fun = median_col, at = c(0, 200),
+             direction = 'horizontal', border = 'black', legend_width = unit(3, "cm"))
+draw(lgd, x = unit(0.15, "npc"), y = unit(0.95, "npc"))
 
+p = recordPlot()
+plot.new()
+png('18S/Figures/Heatmap_protist.png', height = 800, width = 1200)
+print(p)
+dev.off()
 

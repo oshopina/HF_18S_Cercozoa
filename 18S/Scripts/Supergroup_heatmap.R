@@ -68,13 +68,24 @@ rownames(tax) = tax$d_sd_label
 df <- df[,tax$Subdivision]
 
 ################################# ANOVA ##################################
-anova <- auto_aov_fixed(df, ~ pH, env_df = env)$Results
-anova = subset(anova, str_detect(Parameter, 'pH'))[, c('Data', 'F_value', 'p_value', 'Signif')]
-rownames(anova) = anova$Data
-anova = anova[colnames(df),]
-anova$F_value = round(anova$F_value, digits = 2)
-anova$p_value = round(anova$p_value, digits = 4)
-anova$Signif <- gsub("\\*+", "*", anova$Signif)
+anova_results = data.frame()
+for(i in colnames(df)) {
+  anova = anova(aov(df[,i] ~ pH + I(pH^2), data = env))
+  anova <- as.data.frame(anova[, c(1, 4, 5)])
+  colnames(anova) <- c("Df", "F_value", "p_value")
+  anova <- anova %>% mutate(Signif = case_when(p_value < 0.05 ~ "*", TRUE ~ " "))
+  filtered_anova <- anova %>%
+    filter(Signif == "*" | row_number() <= 2) %>%
+    arrange(desc(Signif)) |> 
+    slice(1)
+  rownames(filtered_anova) = i
+  anova_results = rbind(anova_results, filtered_anova)
+}
+
+anova_results = anova_results[colnames(df),]
+anova_results$F_value = round(anova_results$F_value, digits = 2)
+anova_results$p_value = round(anova_results$p_value, digits = 4)
+anova = anova_results
 
 colnames(df) = rownames(tax)
 
