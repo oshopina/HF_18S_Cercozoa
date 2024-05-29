@@ -100,5 +100,3 @@ chlorophyta = t(chlorophyta) |> as.data.frame() |> cbind(chlorophyta_tax)
 traits = otu[rownames(chlorophyta_tax), 100:103]
 chlorophyta = cbind(chlorophyta, traits)
 # write.csv2(chlorophyta, '18S/Data/chlorophyta_120.csv')
-
-
