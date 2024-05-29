@@ -45,11 +45,60 @@ r_level = colSums(embryo) |> min()  ## really small number of reads
 metazoa_tax = tax[!(is.na(tax$Subdivision)),]
 metazoa_tax = metazoa_tax[metazoa_tax$Subdivision == 'Metazoa',]
 metazoa = otu[rownames(metazoa_tax), 1:98]
-r_level = 100
+r_level = 110
 metazoa = metazoa[,colSums(metazoa) >= r_level]
 metazoa = rrarefy(t(metazoa), r_level)
 metazoa = t(metazoa) |> as.data.frame() |> cbind(metazoa_tax)
 traits = otu[rownames(metazoa_tax), 100:103]
 metazoa = cbind(metazoa, traits)
-# write.csv2(metazoa, '18S/Data/metazoa_100.csv')
+# write.csv2(metazoa, '18S/Data/metazoa_110.csv')
+
+subdivisions = unique(tax$Subdivision)
+
+gyrista_tax = tax[!(is.na(tax$Subdivision)),]
+gyrista_tax = gyrista_tax[gyrista_tax$Subdivision == 'Gyrista',]
+gyrista = otu[rownames(gyrista_tax), 1:98]
+r_level = 110 
+gyrista = gyrista[,colSums(gyrista) >= r_level]
+gyrista = rrarefy(t(gyrista), r_level)
+gyrista = t(gyrista) |> as.data.frame() |> cbind(gyrista_tax)
+traits = otu[rownames(gyrista_tax), 100:103]
+gyrista = cbind(gyrista, traits)
+# write.csv2(gyrista, '18S/Data/gyrista_110.csv')
+
+gyrista_tax = tax[!(is.na(tax$Subdivision)),]
+gyrista_tax = gyrista_tax[gyrista_tax$Subdivision == 'Gyrista',]
+gyrista = otu[rownames(gyrista_tax), 1:98]
+r_level = 110 
+gyrista = gyrista[,colSums(gyrista) >= r_level]
+gyrista = rrarefy(t(gyrista), r_level)
+gyrista = t(gyrista) |> as.data.frame() |> cbind(gyrista_tax)
+traits = otu[rownames(gyrista_tax), 100:103]
+gyrista = cbind(gyrista, traits)
+# write.csv2(gyrista, '18S/Data/gyrista_110.csv')
+
+evosea_tax = tax[!(is.na(tax$Subdivision)),]
+evosea_tax = evosea_tax[evosea_tax$Subdivision == 'Evosea_X',]
+evosea = otu[rownames(evosea_tax), 1:98]
+sort(colSums(evosea))
+r_level = 100 
+evosea = evosea[,colSums(evosea) >= r_level]
+evosea = rrarefy(t(evosea), r_level)
+evosea = t(evosea) |> as.data.frame() |> cbind(evosea_tax)
+traits = otu[rownames(evosea_tax), 100:103]
+evosea = cbind(evosea, traits)
+# write.csv2(evosea, '18S/Data/evosea_100.csv')
+
+chlorophyta_tax = tax[!(is.na(tax$Subdivision)),]
+chlorophyta_tax = chlorophyta_tax[chlorophyta_tax$Subdivision == 'Chlorophyta_X',]
+chlorophyta = otu[rownames(chlorophyta_tax), 1:98]
+sort(colSums(chlorophyta))
+r_level = 120 
+chlorophyta = chlorophyta[,colSums(chlorophyta) >= r_level]
+chlorophyta = rrarefy(t(chlorophyta), r_level)
+chlorophyta = t(chlorophyta) |> as.data.frame() |> cbind(chlorophyta_tax)
+traits = otu[rownames(chlorophyta_tax), 100:103]
+chlorophyta = cbind(chlorophyta, traits)
+# write.csv2(chlorophyta, '18S/Data/chlorophyta_120.csv')
+
 
