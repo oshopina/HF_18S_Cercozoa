@@ -100,3 +100,15 @@ chlorophyta = t(chlorophyta) |> as.data.frame() |> cbind(chlorophyta_tax)
 traits = otu[rownames(chlorophyta_tax), 100:103]
 chlorophyta = cbind(chlorophyta, traits)
 # write.csv2(chlorophyta, '18S/Data/chlorophyta_120.csv')
+
+euk_no_fungi_tax = tax[!(is.na(tax$Supergroup)),]
+euk_no_fungi_tax = euk_no_fungi_tax[euk_no_fungi_tax$Subdivision != 'Fungi',]
+euk_no_fungi = otu[rownames(euk_no_fungi_tax),1:98] |> na.omit()
+r_level = colSums(euk_no_fungi) |> min() 
+r_level = floor(r_level/10) * 10
+euk_no_fungi = rrarefy(t(euk_no_fungi), r_level)
+euk_no_fungi_tax = euk_no_fungi_tax[colnames(euk_no_fungi),]
+euk_no_fungi = t(euk_no_fungi) |> as.data.frame() |> cbind(euk_no_fungi_tax)
+traits = otu[rownames(euk_no_fungi_tax), 100:103]
+euk_no_fungi = cbind(euk_no_fungi, traits)
+# write.csv2(euk_no_fungi, '18S/Data/euk_no_fungi_2300.csv')
