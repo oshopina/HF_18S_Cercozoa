@@ -1,7 +1,7 @@
 library(ComplexHeatmap)
 library(changepoint)
 library(changepoint.geo)
-library(gsveasyr)
+library(dplyr)
 
 ################################ Prepare data ##################################
 
@@ -10,13 +10,13 @@ env <- read.csv('18S/Data/env_16S.csv', row.names = 1)
 env <- env[order(env$pH),] ## Sort the way you want the samples to be ordered on heatmap
 
 ## Load community data
-otu = read.csv2('18S/Data/metazoa_100.csv', row.names = 1)
+otu = read.csv2('18S/Data/metazoa_110.csv', row.names = 1)
 tax = otu[,91:99]
 otu = otu[1:90] |> t() |> as.data.frame()
 env = env[rownames(env) %in% rownames(otu),]
 otu <- otu[rownames(env),] ## sort otu table by env table
 
-df <- otu[, apply(otu, 2, max) >= 36]  # Keep columns with max value >= 36 (3%)
+df <- otu[, apply(otu, 2, max) >= 6]  # Keep columns with max value >= 36 (0.5%)
 
 ############################### Change point analysis ##########################
 
@@ -35,7 +35,7 @@ pen.value.full(dist_cpt)
 dist_var = cpts.full(dist_cpt)
 tail(dist_var)
 plot(dist_cpt, diagnostic = T)
-plot(dist_cpt, ncpts = 1)
+plot(dist_cpt, ncpts = 2)
 ######################### WRITE CHOSEN NUMBER OF CHANGEPOINTS FOR ANGLE AND DISTANCE
 cp_dist = readline('Number of changepoint for distance data: ') |> as.numeric()
 
@@ -50,7 +50,7 @@ pen.value.full(ang_cpt)
 ang_var = cpts.full(ang_cpt)
 tail(ang_var)
 plot(ang_cpt, diagnostic = T)
-plot(ang_cpt, ncpts = 3)
+plot(ang_cpt, ncpts = 2)
 ######################### WRITE CHOSEN NUMBER OF CHANGEPOINTS FOR ANGLE AND DISTANCE
 cp_angle = readline('Number of changepoint for angle data: ') |> as.numeric()
 
@@ -76,9 +76,9 @@ for(i in colnames(df)) {
   anova = anova(aov(df[,i] ~ pH + I(pH^2), data = env))
   anova <- as.data.frame(anova[, c(1, 4, 5)])
   colnames(anova) <- c("Df", "F_value", "p_value")
-  anova <- anova %>% mutate(Signif = case_when(p_value < 0.05 ~ "*", TRUE ~ " "))
-  filtered_anova <- anova %>%
-    filter(Signif == "*" | row_number() <= 2) %>%
+  anova <- anova |> mutate(Signif = case_when(p_value < 0.05 ~ "*", TRUE ~ " "))
+  filtered_anova <- anova |>
+    filter(Signif == "*" | row_number() <= 2) |>
     arrange(desc(Signif)) |> 
     slice(1)
   rownames(filtered_anova) = i
@@ -278,6 +278,6 @@ draw(lgd, x = unit(0.15, "npc"), y = unit(0.95, "npc"))
 
 p = recordPlot()
 plot.new()
-png('18S/Figures/Heatmap_metazoa.png', height = 600, width = 800)
+png('18S/Figures/Heatmap_metazoa.png', height = 800, width = 900)
 print(p)
 dev.off()
